@@ -90,13 +90,24 @@ func (e *Engine) Run(addr ...string) (err error){
 		name := context.Param("model")
 		id, err := strconv.Atoi(context.Param("id"))
 		m, b := e.models[name]
-		if err == nil && b {
+		if b && err == nil {
 			mm := makeStruct(m)
 			e.db.First(mm, id)
 			e.db.Delete(mm)
 			context.JSON(200, gin.H{})
 		}
 	})
+	/*
+	e.e.PUT(e.BathPath + "/:model/:id", func(context *gin.Context) {
+		name := context.Param("model")
+		id, err := strconv.Atoi(context.Param("id"))
+		m, b := e.models[name]
+		if b && err == nil {
+
+		}
+	})
+
+	 */
 	return e.e.Run(addr...)
 }
 

@@ -1,2 +1,2 @@
 # rest
-A Go framework like Spring Data Rest
+A tiny Go framework like Spring Data Rest
