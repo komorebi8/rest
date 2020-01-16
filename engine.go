@@ -112,7 +112,7 @@ func (e *Engine) Run(addr ...string) (err error){
 }
 
 
-// return *[]Model
+// returns *[]Model
 func makeSlice(model interface{}) interface{} {
 	t := reflect.TypeOf(model)
 	slice := reflect.MakeSlice(reflect.SliceOf(t), 10, 10)
@@ -121,7 +121,7 @@ func makeSlice(model interface{}) interface{} {
 	return x.Interface()
 }
 
-// return *Model
+// returns *Model
 func makeStruct(model interface{}) interface{} {
 	st := reflect.TypeOf(model)
 	x := reflect.New(st)
