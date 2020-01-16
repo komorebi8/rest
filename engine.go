@@ -22,11 +22,12 @@ func NewEngine(e *gin.Engine, db *gorm.DB) *Engine {
 		e:        e,
 		db:       db,
 		BathPath: "/api",
-		models:   make(map[string]interface{}),  // model and name
+		models:   make(map[string]interface{}),  // name of model and model
 	}
 }
 
 func (e *Engine) AddModel(model interface{})  {
+	e.db.AutoMigrate(model)
 	t := reflect.TypeOf(model)
 	if t.Kind() == reflect.Struct {
 		e.models[strings.ToLower(t.Name())] = model
@@ -69,16 +70,38 @@ func (e *Engine) Run(addr ...string) (err error){
 		m, b := e.models[name]
 		if b && err == nil {
 			mm := makeStruct(m)
-			e.db.First(mm, "id = ?", id)
+			e.db.First(mm, id)
 			context.JSON(200, mm)
 		}
 	})
-
+	e.e.POST(e.BathPath + "/:model", func(context *gin.Context) {
+		name := context.Param("model")
+		m, b := e.models[name]
+		if b {
+			mm := makeStruct(m)
+			err := context.BindJSON(mm)
+			e.db.Create(mm)
+			if err == nil {
+				context.JSON(200, mm)
+			}
+		}
+	})
+	e.e.DELETE(e.BathPath + "/:model/:id", func(context *gin.Context) {
+		name := context.Param("model")
+		id, err := strconv.Atoi(context.Param("id"))
+		m, b := e.models[name]
+		if err == nil && b {
+			mm := makeStruct(m)
+			e.db.First(mm, id)
+			e.db.Delete(mm)
+			context.JSON(200, gin.H{})
+		}
+	})
 	return e.e.Run(addr...)
 }
 
 
-// return *[]T
+// return *[]Model
 func makeSlice(model interface{}) interface{} {
 	t := reflect.TypeOf(model)
 	slice := reflect.MakeSlice(reflect.SliceOf(t), 10, 10)
@@ -87,6 +110,7 @@ func makeSlice(model interface{}) interface{} {
 	return x.Interface()
 }
 
+// return *Model
 func makeStruct(model interface{}) interface{} {
 	st := reflect.TypeOf(model)
 	x := reflect.New(st)
