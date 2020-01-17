@@ -1,4 +1,4 @@
-module rest
+module github.com/kunnpuu/rest
 
 go 1.13
 
