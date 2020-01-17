@@ -114,7 +114,6 @@ func (e *Engine) Run(addr ...string) (err error){
 	return e.e.Run(addr...)
 }
 
-
 // returns *[]Model
 func makeSlice(model interface{}) interface{} {
 	t := reflect.TypeOf(model)
