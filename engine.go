@@ -94,20 +94,23 @@ func (e *Engine) Run(addr ...string) (err error){
 			mm := makeStruct(m)
 			e.db.First(mm, id)
 			e.db.Delete(mm)
-			context.JSON(200, gin.H{})
+			context.JSON(200, gin.H{"data" : "deleted"})
 		}
 	})
-	/*
 	e.e.PUT(e.BathPath + "/:model/:id", func(context *gin.Context) {
 		name := context.Param("model")
 		id, err := strconv.Atoi(context.Param("id"))
 		m, b := e.models[name]
 		if b && err == nil {
-
+			mm := makeStruct(m)
+			e.db.First(mm, id)
+			err := context.BindJSON(mm)
+			if err == nil {
+				e.db.Save(mm)
+				context.JSON(200, mm)
+			}
 		}
 	})
-
-	 */
 	return e.e.Run(addr...)
 }
 
