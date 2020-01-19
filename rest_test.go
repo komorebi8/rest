@@ -44,5 +44,5 @@ func TestNewEngine(t *testing.T) {
 		Price: 345,
 	}
 	db.Create(p1).Create(p2).Create(p3)
-	e.Run()
+	r.Run()
 }
