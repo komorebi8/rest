@@ -10,15 +10,15 @@ import (
 	"strings"
 )
 
-type Engine struct {
+type Rest struct {
 	e        *gin.Engine
 	db       *gorm.DB
 	models   map[string]interface{}
 	BathPath string
 }
 
-func NewEngine(e *gin.Engine, db *gorm.DB) *Engine {
-	return &Engine{
+func New(e *gin.Engine, db *gorm.DB) *Rest {
+	return &Rest{
 		e:        e,
 		db:       db,
 		BathPath: "/api",
@@ -26,95 +26,96 @@ func NewEngine(e *gin.Engine, db *gorm.DB) *Engine {
 	}
 }
 
-func (e *Engine) AddModel(model interface{})  {
-	e.db.AutoMigrate(model)
+func (r *Rest) AddModel(model interface{})  {
+	r.db.AutoMigrate(model)
 	t := reflect.TypeOf(model)
 	if t.Kind() == reflect.Struct {
-		e.models[strings.ToLower(t.Name())] = model
+		r.models[strings.ToLower(t.Name())] = model
 	}
 }
 
-func (e *Engine) Run(addr ...string) (err error){
+func (r *Rest) Run(addr ...string) (err error){
 	path := getPath()
 	port := resolveAddress(addr)
 
-	e.e.GET("/", func(context *gin.Context) {
+	r.e.GET("/", func(context *gin.Context) {
 		links := gin.H{}
-		for name := range e.models {
+		for name := range r.models {
 			links[name] = gin.H{
-				"href" : path + port + e.BathPath + "/" + name,
+				"href" : path + port + r.BathPath + "/" + name,
 			}
 		}
 		context.JSON(200, gin.H{
 			"_links" : links,
 		})
 	})
-	e.e.GET(e.BathPath + "/:model", func(context *gin.Context) {
+	r.e.GET(r.BathPath + "/:model", func(context *gin.Context) {
 		name := context.Param("model")
-		ms := makeSlice(e.models[name])
-		e.db.Find(ms)
+		ms := makeSlice(r.models[name])
+		r.db.Find(ms)
 		context.JSON(200, gin.H{
 			"_embedded" : gin.H{
 				name : ms,
 			},
 			"_links" : gin.H{
 				"self" : gin.H{
-					"href" : path + port + e.BathPath + "/" + name,
+					"href" : path + port + r.BathPath + "/" + name,
 				},
 			},
 		})
 	})
-	e.e.GET(e.BathPath + "/:model/:id", func(context *gin.Context) {
+	r.e.GET(r.BathPath + "/:model/:id", func(context *gin.Context) {
 		name := context.Param("model")
 		id, err := strconv.Atoi(context.Param("id"))
-		m, b := e.models[name]
+		m, b := r.models[name]
 		if b && err == nil {
 			mm := makeStruct(m)
-			e.db.First(mm, id)
+			r.db.First(mm, id)
 			context.JSON(200, mm)
 		}
 	})
-	e.e.POST(e.BathPath + "/:model", func(context *gin.Context) {
+	r.e.POST(r.BathPath + "/:model", func(context *gin.Context) {
 		name := context.Param("model")
-		m, b := e.models[name]
+		m, b := r.models[name]
 		if b {
 			mm := makeStruct(m)
 			err := context.BindJSON(mm)
-			e.db.Create(mm)
+			r.db.Create(mm)
 			if err == nil {
 				context.JSON(200, mm)
 			}
 		}
 	})
-	e.e.DELETE(e.BathPath + "/:model/:id", func(context *gin.Context) {
+	r.e.DELETE(r.BathPath + "/:model/:id", func(context *gin.Context) {
 		name := context.Param("model")
 		id, err := strconv.Atoi(context.Param("id"))
-		m, b := e.models[name]
+		m, b := r.models[name]
 		if b && err == nil {
 			mm := makeStruct(m)
-			e.db.First(mm, id)
-			e.db.Delete(mm)
+			r.db.First(mm, id)
+			r.db.Delete(mm)
 			context.JSON(200, gin.H{"data" : "deleted"})
 		}
 	})
-	e.e.PUT(e.BathPath + "/:model/:id", func(context *gin.Context) {
+	r.e.PUT(r.BathPath + "/:model/:id", func(context *gin.Context) {
 		name := context.Param("model")
 		id, err := strconv.Atoi(context.Param("id"))
-		m, b := e.models[name]
+		m, b := r.models[name]
 		if b && err == nil {
 			mm := makeStruct(m)
-			e.db.First(mm, id)
+			r.db.First(mm, id)
 			err := context.BindJSON(mm)
 			if err == nil {
-				e.db.Save(mm)
+				r.db.Save(mm)
 				context.JSON(200, mm)
 			}
 		}
 	})
-	return e.e.Run(addr...)
+	return r.e.Run(addr...)
 }
 
 // returns *[]Model
+// Using make() to generate a slice will cause an unaddressed pointer error.
 func makeSlice(model interface{}) interface{} {
 	t := reflect.TypeOf(model)
 	slice := reflect.MakeSlice(reflect.SliceOf(t), 10, 10)
@@ -145,7 +146,7 @@ func resolveAddress(addr []string) string {
 }
 
 func getPath() string {
-	path := ""
+	path := "http://"
 	conn, err := net.Dial("udp", "google.com:80")
 	if err != nil {
 		path = path + "localhost"

@@ -4,7 +4,7 @@ A tiny Go framework like Spring Data Rest.
 It can generate restful api quickly by defining a struct.
 
 For example, writing this code, and you can GET and POST on "localhost:8080/api/product",
-also POST, DELETE and PUT on "localhost:8080/api/product/:id".
+also GET, POST, DELETE and PUT on "localhost:8080/api/product/:id".
 
     package main
     import (
@@ -24,12 +24,12 @@ also POST, DELETE and PUT on "localhost:8080/api/product/:id".
 	    Age uint
     }
     func main() {
-	    r := gin.Default()
+	    e := gin.Default()
 	    db, _ := gorm.Open("sqlite3", "test.db")
 	    defer db.Close()
-	    e := rest.NewEngine(r, db)
-	    e.AddModel(Product{})
-	    e.AddModel(Customer{})
-	    e.Run()
+	    r := rest.New(e, db)
+	    r.AddModel(Product{})
+	    r.AddModel(Customer{})
+	    r.Run()
     }
 

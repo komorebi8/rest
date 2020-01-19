@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"os"
 	"testing"
 )
 
@@ -20,13 +21,13 @@ type Customer struct {
 }
 
 func TestNewEngine(t *testing.T) {
-	r := gin.Default()
+	e := gin.Default()
+	os.Remove("test.db")
 	db, _ := gorm.Open("sqlite3", "test.db")
 	defer db.Close()
-	e := NewEngine(r, db)
-	e.AddModel(Product{})
-	e.AddModel(Customer{})
-	/*
+	r := New(e, db)
+	r.AddModel(Product{})
+	r.AddModel(Customer{})
 	p1 := &Product{
 		Model: gorm.Model{},
 		Code:  "H1234",
@@ -43,7 +44,5 @@ func TestNewEngine(t *testing.T) {
 		Price: 345,
 	}
 	db.Create(p1).Create(p2).Create(p3)
-	 */
 	e.Run()
-
 }
