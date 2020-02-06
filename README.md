@@ -86,7 +86,7 @@ also GET, POST, DELETE and PUT on "localhost:8080/api/product/:id".
         },
         "_links": {
             "self": {
-                "href": "http://localhost:8080/api/product"
+                "href": "http://193.168.1.114:8080/api/product"
             }
         }
     }
