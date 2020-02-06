@@ -28,18 +28,18 @@ func New(e *gin.Engine, db *gorm.DB) *Rest {
 	}
 }
 
-func (r *Rest) ForModel(model interface{}) *Model {
-	t := reflect.TypeOf(model)
+func (r *Rest) ForModel(instance interface{}) *Model {
+	t := reflect.TypeOf(instance)
 	return r.models[strings.ToLower(t.Name())]
 }
 
-func (r *Rest) AddModel(model interface{})  {
-	r.DB.AutoMigrate(model)
-	t := reflect.TypeOf(model)
+func (r *Rest) AddModel(instance interface{})  {
+	r.DB.AutoMigrate(instance)
+	t := reflect.TypeOf(instance)
 	if t.Kind() == reflect.Struct {
 		r.models[strings.ToLower(t.Name())] = &Model{
 			name:          strings.ToLower(t.Name()),
-			instance:      model,
+			instance:      instance,
 			GetModel:      nil,
 			GetModelID:    nil,
 			PostModel:     nil,
