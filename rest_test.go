@@ -28,7 +28,7 @@ func TestNewEngine(t *testing.T) {
 	r := New(e, db)
 	r.AddModel(Product{})
 	r.AddModel(Customer{})
-	r.ForModel(Customer{}).GetModel = func(r *Rest, c *gin.Context) {
+	r.ForModel(Customer{}).GetModelFunc = func(r *Rest, c *gin.Context) {
 		c.JSON(200, gin.H{
 			"data": "customer",
 		})
