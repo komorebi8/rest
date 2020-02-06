@@ -28,6 +28,12 @@ func TestNewEngine(t *testing.T) {
 	r := New(e, db)
 	r.AddModel(Product{})
 	r.AddModel(Customer{})
+	r.ForModel(Customer{}).GetModel = func(r *Rest, c *gin.Context) {
+		c.JSON(200, gin.H{
+			"data": "customer",
+		})
+	}
+	/*
 	p1 := &Product{
 		Model: gorm.Model{},
 		Code:  "H1234",
@@ -44,5 +50,6 @@ func TestNewEngine(t *testing.T) {
 		Price: 345,
 	}
 	db.Create(p1).Create(p2).Create(p3)
+	*/
 	r.Run()
 }

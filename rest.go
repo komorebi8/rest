@@ -11,34 +11,48 @@ import (
 )
 
 type Rest struct {
-	e        *gin.Engine
-	db       *gorm.DB
-	models   map[string]interface{}
+	Engine   *gin.Engine
+	DB       *gorm.DB
+	models   map[string]*Model
 	BathPath string
 }
 
+type TweakFunc func(r *Rest, c *gin.Context)
+
 func New(e *gin.Engine, db *gorm.DB) *Rest {
 	return &Rest{
-		e:        e,
-		db:       db,
+		Engine:   e,
+		DB:       db,
 		BathPath: "/api",
-		models:   make(map[string]interface{}),  // name of model and model
+		models:   make(map[string]*Model),  // name of model and model
 	}
 }
 
+func (r *Rest) ForModel(model interface{}) *Model {
+	t := reflect.TypeOf(model)
+	return r.models[strings.ToLower(t.Name())]
+}
+
 func (r *Rest) AddModel(model interface{})  {
-	r.db.AutoMigrate(model)
+	r.DB.AutoMigrate(model)
 	t := reflect.TypeOf(model)
 	if t.Kind() == reflect.Struct {
-		r.models[strings.ToLower(t.Name())] = model
+		r.models[strings.ToLower(t.Name())] = &Model{
+			name:          strings.ToLower(t.Name()),
+			instance:      model,
+			GetModel:      nil,
+			GetModelID:    nil,
+			PostModel:     nil,
+			DeleteModelID: nil,
+			PutModelID:    nil,
+		}
 	}
 }
 
 func (r *Rest) Run(addr ...string) (err error){
 	path := getPath()
 	port := resolveAddress(addr)
-
-	r.e.GET("/", func(context *gin.Context) {
+	r.Engine.GET("/", func(context *gin.Context) {
 		links := gin.H{}
 		for name := range r.models {
 			links[name] = gin.H{
@@ -49,86 +63,89 @@ func (r *Rest) Run(addr ...string) (err error){
 			"_links" : links,
 		})
 	})
-	r.e.GET(r.BathPath + "/:model", func(context *gin.Context) {
+	r.Engine.GET(r.BathPath + "/:model", func(context *gin.Context) {
 		name := context.Param("model")
-		ms := makeSlice(r.models[name])
-		r.db.Find(ms)
-		context.JSON(200, gin.H{
-			"_embedded" : gin.H{
-				name : ms,
-			},
-			"_links" : gin.H{
-				"self" : gin.H{
-					"href" : path + port + r.BathPath + "/" + name,
+		if f := r.models[name].GetModel; f != nil {
+			f(r, context)
+		} else {
+			ms := makeSlice(r.models[name].instance)
+			r.DB.Find(ms)
+			context.JSON(200, gin.H{
+				"_embedded" : gin.H{
+					name : ms,
 				},
-			},
-		})
-	})
-	r.e.GET(r.BathPath + "/:model/:id", func(context *gin.Context) {
-		name := context.Param("model")
-		id, err := strconv.Atoi(context.Param("id"))
-		m, b := r.models[name]
-		if b && err == nil {
-			mm := makeStruct(m)
-			r.db.First(mm, id)
-			context.JSON(200, mm)
+				"_links" : gin.H{
+					"self" : gin.H{
+						"href" : path + port + r.BathPath + "/" + name,
+					},
+				},
+			})
 		}
 	})
-	r.e.POST(r.BathPath + "/:model", func(context *gin.Context) {
+	r.Engine.GET(r.BathPath + "/:model/:id", func(context *gin.Context) {
 		name := context.Param("model")
-		m, b := r.models[name]
-		if b {
-			mm := makeStruct(m)
-			err := context.BindJSON(mm)
-			r.db.Create(mm)
-			if err == nil {
+		if f := r.models[name].GetModelID; f != nil {
+			f(r, context)
+		} else {
+			id, err := strconv.Atoi(context.Param("id"))
+			m, b := r.models[name]
+			if b && err == nil {
+				mm := makeStruct(m.instance)
+				r.DB.First(mm, id)
 				context.JSON(200, mm)
 			}
 		}
 	})
-	r.e.DELETE(r.BathPath + "/:model/:id", func(context *gin.Context) {
+	r.Engine.POST(r.BathPath + "/:model", func(context *gin.Context) {
 		name := context.Param("model")
-		id, err := strconv.Atoi(context.Param("id"))
-		m, b := r.models[name]
-		if b && err == nil {
-			mm := makeStruct(m)
-			r.db.First(mm, id)
-			r.db.Delete(mm)
-			context.JSON(200, gin.H{"data" : "deleted"})
-		}
-	})
-	r.e.PUT(r.BathPath + "/:model/:id", func(context *gin.Context) {
-		name := context.Param("model")
-		id, err := strconv.Atoi(context.Param("id"))
-		m, b := r.models[name]
-		if b && err == nil {
-			mm := makeStruct(m)
-			r.db.First(mm, id)
-			err := context.BindJSON(mm)
-			if err == nil {
-				r.db.Save(mm)
-				context.JSON(200, mm)
+		if f := r.models[name].PostModel; f != nil {
+			f(r, context)
+		} else {
+			m, b := r.models[name]
+			if b {
+				mm := makeStruct(m.instance)
+				err := context.BindJSON(mm)
+				r.DB.Create(mm)
+				if err == nil {
+					context.JSON(200, mm)
+				}
 			}
 		}
 	})
-	return r.e.Run(addr...)
-}
-
-// returns *[]Model
-// Using make() to generate a slice will cause an unaddressed pointer error.
-func makeSlice(model interface{}) interface{} {
-	t := reflect.TypeOf(model)
-	slice := reflect.MakeSlice(reflect.SliceOf(t), 10, 10)
-	x := reflect.New(slice.Type())
-	x.Elem().Set(slice)
-	return x.Interface()
-}
-
-// returns *Model
-func makeStruct(model interface{}) interface{} {
-	st := reflect.TypeOf(model)
-	x := reflect.New(st)
-	return x.Interface()
+	r.Engine.DELETE(r.BathPath + "/:model/:id", func(context *gin.Context) {
+		name := context.Param("model")
+		if f := r.models[name].DeleteModelID; f != nil {
+			f(r, context)
+		} else {
+			id, err := strconv.Atoi(context.Param("id"))
+			m, b := r.models[name]
+			if b && err == nil {
+				mm := makeStruct(m.instance)
+				r.DB.First(mm, id)
+				r.DB.Delete(mm)
+				context.JSON(200, gin.H{"data" : "deleted"})
+			}
+		}
+	})
+	r.Engine.PUT(r.BathPath + "/:model/:id", func(context *gin.Context) {
+		name := context.Param("model")
+		if f := r.models[name].PutModelID; f != nil {
+			f(r, context)
+		} else {
+			id, err := strconv.Atoi(context.Param("id"))
+			m, b := r.models[name]
+			if b && err == nil {
+				mm := makeStruct(m.instance)
+				r.DB.First(mm, id)
+				err := context.BindJSON(mm)
+				if err == nil {
+					r.DB.Save(mm)
+					context.JSON(200, mm)
+				}
+			}
+		}
+	})
+	return r.Engine.Run(addr...)
 }
 
 func resolveAddress(addr []string) string {

@@ -30,6 +30,67 @@ also GET, POST, DELETE and PUT on "localhost:8080/api/product/:id".
 	    r := rest.New(e, db)
 	    r.AddModel(Product{})
 	    r.AddModel(Customer{})
+	    // Customization
+	    r.ForModel(Customer{}).GetModel = func(r *Rest, c *gin.Context) {
+        		c.JSON(200, gin.H{
+        			"data": "customer",
+        		})
+        	}
 	    r.Run()
     }
+    
+    /*
+    GET: localhost:8080/
+    Response:
+    {
+        "_links": {
+            "customer": {
+                "href": "http://193.168.1.114:8080/api/customer"
+            },
+            "product": {
+                "href": "http://193.168.1.114:8080/api/product"
+            }
+        }
+    }
+    
+    POST: localhost:8080/api/product
+    Body:
+    {
+        "Code": "H234567",
+        "Price": 23467
+    }
+    Response:
+    {
+        "ID": 1,
+        "CreatedAt": "2020-02-06T12:08:24.7030646+08:00",
+        "UpdatedAt": "2020-02-06T12:08:24.7030646+08:00",
+        "DeletedAt": null,
+        "Code": "H234567",
+        "Price": 23467
+    }
+    
+    GET: localhost:8080/api/product
+    Response:
+    {
+        "_embedded": {
+            "product": [
+                {
+                    "ID": 1,
+                    "CreatedAt": "2020-02-06T12:08:24.7030646+08:00",
+                    "UpdatedAt": "2020-02-06T12:08:24.7030646+08:00",
+                    "DeletedAt": null,
+                    "Code": "H234567",
+                    "Price": 23467
+                }
+            ]
+        },
+        "_links": {
+            "self": {
+                "href": "http://localhost:8080/api/product"
+            }
+        }
+    }
+    
+
+    */
 
