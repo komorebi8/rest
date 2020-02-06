@@ -35,10 +35,7 @@ func (r *Rest) AddModel(instance interface{})  {
 	r.DB.AutoMigrate(instance)
 	t := reflect.TypeOf(instance)
 	if t.Kind() == reflect.Struct {
-		r.models[strings.ToLower(t.Name())] = &Model{
-			name:          strings.ToLower(t.Name()),
-			instance:      instance,
-		}
+		r.models[strings.ToLower(t.Name())] = NewModel(instance)
 	}
 }
 
