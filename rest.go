@@ -44,7 +44,6 @@ func (r *Rest) ForModel(instance interface{}) *Model {
 }
 
 func (r *Rest) Run(addr ...string) (err error){
-	// todo gorm error handling
 	path := getPath()
 	port := resolveAddress(addr)
 	r.Engine.GET("/", func(context *gin.Context) {
@@ -65,17 +64,18 @@ func (r *Rest) Run(addr ...string) (err error){
 			f(r, context)
 		} else {
 			r.models[name].OperateInstanceSlice(func(ms interface{}) {
-				r.DB.Find(ms)
-				context.JSON(200, gin.H{
-					"_embedded" : gin.H{
-						name : ms,
-					},
-					"_links" : gin.H{
-						"self" : gin.H{
-							"href" : path + port + r.BathPath + "/" + name,
+				if err := r.DB.Find(ms).Error; err == nil {
+					context.JSON(200, gin.H{
+						"_embedded" : gin.H{
+							name : ms,
 						},
-					},
-				})
+						"_links" : gin.H{
+							"self" : gin.H{
+								"href" : path + port + r.BathPath + "/" + name,
+							},
+						},
+					})
+				}
 			})
 		}
 	})
@@ -85,10 +85,10 @@ func (r *Rest) Run(addr ...string) (err error){
 			f(r, context)
 		} else {
 			r.models[name].OperateInstance(func(mm interface{}) {
-				id, err := strconv.Atoi(context.Param("id"))
-				if err == nil {
-					r.DB.First(mm, id)
-					context.JSON(200, mm)
+				if id, err := strconv.Atoi(context.Param("id")); err == nil {
+					if err = r.DB.First(mm, id).Error; err == nil {
+						context.JSON(200, mm)
+					}
 				}
 			})
 		}
@@ -99,12 +99,11 @@ func (r *Rest) Run(addr ...string) (err error){
 			f(r, context)
 		} else {
 			r.models[name].OperateInstance(func(mm interface{}) {
-				err := context.BindJSON(mm)
-				r.DB.Create(mm)
-				if err == nil {
-					context.JSON(200, mm)
+				if err := context.BindJSON(mm); err == nil {
+					if err = r.DB.Create(mm).Error; err == nil {
+						context.JSON(200, mm)
+					}
 				}
-
 			})
 		}
 	})
@@ -114,11 +113,14 @@ func (r *Rest) Run(addr ...string) (err error){
 			f(r, context)
 		} else {
 			r.models[name].OperateInstance(func(mm interface{}) {
-				id, err := strconv.Atoi(context.Param("id"))
-				if err == nil {
-					r.DB.First(mm, id)
-					r.DB.Delete(mm)
-					context.JSON(200, gin.H{"data" : "deleted"})
+				if id, err := strconv.Atoi(context.Param("id")); err == nil {
+					if err = r.DB.First(mm, id).Error; err == nil {
+						if err = r.DB.Delete(mm).Error; err == nil {
+							context.JSON(200, gin.H{
+								"data" : "deleted",
+							})
+						}
+					}
 				}
 			})
 		}
@@ -129,13 +131,13 @@ func (r *Rest) Run(addr ...string) (err error){
 			f(r, context)
 		} else {
 			r.models[name].OperateInstance(func(mm interface{}) {
-				id, err := strconv.Atoi(context.Param("id"))
-				if err == nil {
-					r.DB.First(mm, id)
-					err := context.BindJSON(mm)
-					if err == nil {
-						r.DB.Save(mm)
-						context.JSON(200, mm)
+				if id, err := strconv.Atoi(context.Param("id")); err == nil {
+					if err = r.DB.First(mm, id).Error; err == nil {
+						if err = context.BindJSON(mm); err == nil {
+							if err = r.DB.Save(mm).Error; err == nil {
+								context.JSON(200, mm)
+							}
+						}
 					}
 				}
 			})
