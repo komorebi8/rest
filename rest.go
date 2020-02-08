@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"net"
@@ -26,20 +27,24 @@ func New(e *gin.Engine, db *gorm.DB) *Rest {
 	}
 }
 
+func (r *Rest) AddModel(instance interface{}) error {
+	t := reflect.TypeOf(instance)
+	if t.Kind() == reflect.Struct {
+		r.DB.AutoMigrate(instance)
+		r.models[strings.ToLower(t.Name())] = NewModel(instance)
+	} else {
+		return errors.New("model must be a struct")
+	}
+	return nil
+}
+
 func (r *Rest) ForModel(instance interface{}) *Model {
 	t := reflect.TypeOf(instance)
 	return r.models[strings.ToLower(t.Name())]
 }
 
-func (r *Rest) AddModel(instance interface{})  {
-	r.DB.AutoMigrate(instance)
-	t := reflect.TypeOf(instance)
-	if t.Kind() == reflect.Struct {
-		r.models[strings.ToLower(t.Name())] = NewModel(instance)
-	}
-}
-
 func (r *Rest) Run(addr ...string) (err error){
+	// todo gorm error handling
 	path := getPath()
 	port := resolveAddress(addr)
 	r.Engine.GET("/", func(context *gin.Context) {
@@ -54,6 +59,7 @@ func (r *Rest) Run(addr ...string) (err error){
 		})
 	})
 	r.Engine.GET(r.BathPath + "/:model", func(context *gin.Context) {
+		// todo paging and sorting
 		name := context.Param("model")
 		if f := r.models[name].GetModelFunc; f != nil {
 			f(r, context)
