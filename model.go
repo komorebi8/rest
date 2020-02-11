@@ -2,6 +2,7 @@ package rest
 
 import (
 	"github.com/gin-gonic/gin"
+	"log"
 	"reflect"
 	"strings"
 )
@@ -53,6 +54,7 @@ func (m *Model) OperateInstance(f TransactionFunc) {
 		m.InstancePool<- i
 	default:
 		f(makeStruct(m.instance))
+		log.Println("make instance by reflect")
 	}
 }
 
@@ -66,7 +68,7 @@ func (m *Model) OperateInstanceSlice(f TransactionFunc) {
 	}
 }
 
-// returns *[]instance
+// returns *[]*instance
 // Using make() to generate a slice will cause an unaddressed pointer error.
 func makeSlice(instance interface{}) interface{} {
 	t := reflect.TypeOf(instance)
@@ -76,7 +78,7 @@ func makeSlice(instance interface{}) interface{} {
 	return x.Interface()
 }
 
-// returns *instance
+// returns **instance
 func makeStruct(instance interface{}) interface{} {
 	st := reflect.TypeOf(instance)
 	x := reflect.New(st)
