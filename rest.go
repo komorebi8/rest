@@ -4,8 +4,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
-	"net"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -44,13 +42,11 @@ func (r *Rest) ForModel(instance interface{}) *Model {
 }
 
 func (r *Rest) Run(addr ...string) (err error){
-	path := getPath()
-	port := resolveAddress(addr)
 	r.Engine.GET("/", func(context *gin.Context) {
 		links := gin.H{}
 		for name := range r.models {
 			links[name] = gin.H{
-				"href" : path + port + r.BathPath + "/" + name,
+				"href" : context.Request.Host + r.BathPath + "/" + name,
 			}
 		}
 		context.JSON(200, gin.H{
@@ -71,7 +67,7 @@ func (r *Rest) Run(addr ...string) (err error){
 						},
 						"_links" : gin.H{
 							"self" : gin.H{
-								"href" : path + port + r.BathPath + "/" + name,
+								"href" : context.Request.Host + r.BathPath + "/" + name,
 							},
 						},
 					})
@@ -144,29 +140,4 @@ func (r *Rest) Run(addr ...string) (err error){
 		}
 	})
 	return r.Engine.Run(addr...)
-}
-
-func resolveAddress(addr []string) string {
-	switch len(addr) {
-	case 0:
-		if port := os.Getenv("PORT"); port != "" {
-			return ":" + port
-		}
-		return ":8080"
-	case 1:
-		return addr[0]
-	default:
-		panic("too many parameters")
-	}
-}
-
-func getPath() string {
-	path := "http://"
-	conn, err := net.Dial("udp", "google.com:80")
-	if err != nil {
-		path = path + "localhost"
-	}
-	defer conn.Close()
-	path = path + strings.Split(conn.LocalAddr().String(), ":")[0]
-	return path
 }
