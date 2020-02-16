@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"reflect"
-	"strconv"
 	"strings"
 )
 
@@ -42,102 +41,37 @@ func (r *Rest) ForModel(instance interface{}) *Model {
 }
 
 func (r *Rest) Run(addr ...string) (err error){
-	r.Engine.GET("/", func(context *gin.Context) {
+	r.Engine.GET("/", func(c *gin.Context) {
 		links := gin.H{}
 		for name := range r.models {
 			links[name] = gin.H{
-				"href" : context.Request.Host + r.BathPath + "/" + name,
+				"href" : c.Request.Host + r.BathPath + "/" + name,
 			}
 		}
-		context.JSON(200, gin.H{
+		c.JSON(200, gin.H{
 			"_links" : links,
 		})
 	})
-	r.Engine.GET(r.BathPath + "/:model", func(context *gin.Context) {
+	r.Engine.GET(r.BathPath + "/:model", func(c *gin.Context) {
 		// todo paging and sorting
-		name := context.Param("model")
-		if f := r.models[name].GetModelFunc; f != nil {
-			f(r, context)
-		} else {
-			r.models[name].OperateInstanceSlice(func(ms interface{}) {
-				if err := r.DB.Find(ms).Error; err == nil {
-					context.JSON(200, gin.H{
-						"_embedded" : gin.H{
-							name : ms,
-						},
-						"_links" : gin.H{
-							"self" : gin.H{
-								"href" : context.Request.Host + r.BathPath + "/" + name,
-							},
-						},
-					})
-				}
-			})
-		}
+		name := c.Param("model")
+		r.models[name].GetModelFunc(r, c)
 	})
-	r.Engine.GET(r.BathPath + "/:model/:id", func(context *gin.Context) {
-		name := context.Param("model")
-		if f := r.models[name].GetModelIDFunc; f != nil {
-			f(r, context)
-		} else {
-			r.models[name].OperateInstance(func(mm interface{}) {
-				if id, err := strconv.Atoi(context.Param("id")); err == nil {
-					if err = r.DB.First(mm, id).Error; err == nil {
-						context.JSON(200, mm)
-					}
-				}
-			})
-		}
+	r.Engine.GET(r.BathPath + "/:model/:id", func(c *gin.Context) {
+		name := c.Param("model")
+		r.models[name].GetModelIDFunc(r, c)
 	})
-	r.Engine.POST(r.BathPath + "/:model", func(context *gin.Context) {
-		name := context.Param("model")
-		if f := r.models[name].PostModelFunc; f != nil {
-			f(r, context)
-		} else {
-			r.models[name].OperateInstance(func(mm interface{}) {
-				if err := context.BindJSON(mm); err == nil {
-					if err = r.DB.Create(mm).Error; err == nil {
-						context.JSON(200, mm)
-					}
-				}
-			})
-		}
+	r.Engine.POST(r.BathPath + "/:model", func(c *gin.Context) {
+		name := c.Param("model")
+		r.models[name].PostModelFunc(r, c)
 	})
-	r.Engine.DELETE(r.BathPath + "/:model/:id", func(context *gin.Context) {
-		name := context.Param("model")
-		if f := r.models[name].DeleteModelIDFunc; f != nil {
-			f(r, context)
-		} else {
-			r.models[name].OperateInstance(func(mm interface{}) {
-				if id, err := strconv.Atoi(context.Param("id")); err == nil {
-					if err = r.DB.First(mm, id).Error; err == nil {
-						if err = r.DB.Delete(mm).Error; err == nil {
-							context.JSON(200, gin.H{
-								"data" : "deleted",
-							})
-						}
-					}
-				}
-			})
-		}
+	r.Engine.DELETE(r.BathPath + "/:model/:id", func(c *gin.Context) {
+		name := c.Param("model")
+		r.models[name].DeleteModelIDFunc(r, c)
 	})
-	r.Engine.PUT(r.BathPath + "/:model/:id", func(context *gin.Context) {
-		name := context.Param("model")
-		if f := r.models[name].PutModelIDFunc; f != nil {
-			f(r, context)
-		} else {
-			r.models[name].OperateInstance(func(mm interface{}) {
-				if id, err := strconv.Atoi(context.Param("id")); err == nil {
-					if err = r.DB.First(mm, id).Error; err == nil {
-						if err = context.BindJSON(mm); err == nil {
-							if err = r.DB.Save(mm).Error; err == nil {
-								context.JSON(200, mm)
-							}
-						}
-					}
-				}
-			})
-		}
+	r.Engine.PUT(r.BathPath + "/:model/:id", func(c *gin.Context) {
+		name := c.Param("model")
+		r.models[name].PutModelIDFunc(r, c)
 	})
 	return r.Engine.Run(addr...)
 }

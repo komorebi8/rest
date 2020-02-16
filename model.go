@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -33,6 +34,66 @@ func NewModel(instance interface{}) *Model {
 		instance:          instance,
 	}
 	m.SetPoolSize(20)
+	m.GetModelFunc = func(r *Rest, c *gin.Context) {
+		m.OperateInstanceSlice(func(ms interface{}) {
+			if err := r.DB.Find(ms).Error; err == nil {
+				c.JSON(200, gin.H{
+					"_embedded" : gin.H{
+						m.name : ms,
+					},
+					"_links" : gin.H{
+						"self" : gin.H{
+							"href" : c.Request.Host + r.BathPath + "/" + m.name,
+						},
+					},
+				})
+			}
+		})
+	}
+	m.GetModelIDFunc = func(r *Rest, c *gin.Context) {
+		m.OperateInstance(func(mm interface{}) {
+			if id, err := strconv.Atoi(c.Param("id")); err == nil {
+				if err = r.DB.First(mm, id).Error; err == nil {
+					c.JSON(200, mm)
+				}
+			}
+		})
+	}
+	m.PostModelFunc = func(r *Rest, c *gin.Context) {
+		m.OperateInstance(func(mm interface{}) {
+			if err := c.BindJSON(mm); err == nil {
+				if err = r.DB.Create(mm).Error; err == nil {
+					c.JSON(200, mm)
+				}
+			}
+		})
+	}
+	m.DeleteModelIDFunc = func(r *Rest, c *gin.Context) {
+		m.OperateInstance(func(mm interface{}) {
+			if id, err := strconv.Atoi(c.Param("id")); err == nil {
+				if err = r.DB.First(mm, id).Error; err == nil {
+					if err = r.DB.Delete(mm).Error; err == nil {
+						c.JSON(200, gin.H{
+							"data" : "deleted",
+						})
+					}
+				}
+			}
+		})
+	}
+	m.PutModelIDFunc = func(r *Rest, c *gin.Context) {
+		m.OperateInstance(func(mm interface{}) {
+			if id, err := strconv.Atoi(c.Param("id")); err == nil {
+				if err = r.DB.First(mm, id).Error; err == nil {
+					if err = c.BindJSON(mm); err == nil {
+						if err = r.DB.Save(mm).Error; err == nil {
+							c.JSON(200, mm)
+						}
+					}
+				}
+			}
+		})
+	}
 	return m
 }
 
