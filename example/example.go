@@ -1,11 +1,11 @@
-package rest
+package main
 
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/kunnpuu/rest"
 	"os"
-	"testing"
 )
 
 type Product struct {
@@ -20,36 +20,18 @@ type Customer struct {
 	Age uint
 }
 
-func TestNewEngine(t *testing.T) {
+func main() {
 	e := gin.Default()
 	os.Remove("test.db")
 	db, _ := gorm.Open("sqlite3", "test.db")
 	defer db.Close()
-	r := New(e, db)
+	r := rest.New(e, db)
 	r.AddModel(Product{})
 	r.AddModel(Customer{})
-	r.ForModel(Customer{}).GetModelFunc = func(r *Rest, c *gin.Context) {
+	r.ForModel(Customer{}).GetModelFunc = func(r *rest.Rest, c *gin.Context) {
 		c.JSON(200, gin.H{
 			"data": "customer",
 		})
 	}
-	/*
-	p1 := &Product{
-		Model: gorm.Model{},
-		Code:  "H1234",
-		Price: 123,
-	}
-	p2 := &Product{
-		Model: gorm.Model{},
-		Code:  "H2345",
-		Price: 234,
-	}
-	p3 := &Product{
-		Model: gorm.Model{},
-		Code:  "H3456",
-		Price: 345,
-	}
-	db.Create(p1).Create(p2).Create(p3)
-	*/
 	r.Run()
 }
