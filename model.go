@@ -34,6 +34,11 @@ func NewModel(instance interface{}) *Model {
 		instance:          instance,
 	}
 	m.SetPoolSize(20)
+	m.SetTweakFunc()
+	return m
+}
+
+func (m *Model) SetTweakFunc() {
 	m.GetModelFunc = func(r *Rest, c *gin.Context) {
 		m.OperateInstanceSlice(func(ms interface{}) {
 			if err := r.DB.Find(ms).Error; err == nil {
@@ -43,7 +48,7 @@ func NewModel(instance interface{}) *Model {
 					},
 					"_links" : gin.H{
 						"self" : gin.H{
-							"href" : c.Request.Host + r.BathPath + "/" + m.name,
+							"href" : c.Request.Host + r.BasePath + "/" + m.name,
 						},
 					},
 				})
@@ -94,7 +99,6 @@ func NewModel(instance interface{}) *Model {
 			}
 		})
 	}
-	return m
 }
 
 func (m *Model) SetPoolSize(size int) {

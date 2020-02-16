@@ -12,14 +12,14 @@ type Rest struct {
 	Engine   *gin.Engine
 	DB       *gorm.DB
 	models   map[string]*Model
-	BathPath string
+	BasePath string
 }
 
 func New(e *gin.Engine, db *gorm.DB) *Rest {
 	return &Rest{
 		Engine:   e,
 		DB:       db,
-		BathPath: "/api",
+		BasePath: "/api",
 		models:   make(map[string]*Model),  // name of model and model
 	}
 }
@@ -45,31 +45,31 @@ func (r *Rest) Run(addr ...string) (err error){
 		links := gin.H{}
 		for name := range r.models {
 			links[name] = gin.H{
-				"href" : c.Request.Host + r.BathPath + "/" + name,
+				"href" : c.Request.Host + r.BasePath + "/" + name,
 			}
 		}
 		c.JSON(200, gin.H{
 			"_links" : links,
 		})
 	})
-	r.Engine.GET(r.BathPath + "/:model", func(c *gin.Context) {
+	r.Engine.GET(r.BasePath + "/:model", func(c *gin.Context) {
 		// todo paging and sorting
 		name := c.Param("model")
 		r.models[name].GetModelFunc(r, c)
 	})
-	r.Engine.GET(r.BathPath + "/:model/:id", func(c *gin.Context) {
+	r.Engine.GET(r.BasePath + "/:model/:id", func(c *gin.Context) {
 		name := c.Param("model")
 		r.models[name].GetModelIDFunc(r, c)
 	})
-	r.Engine.POST(r.BathPath + "/:model", func(c *gin.Context) {
+	r.Engine.POST(r.BasePath + "/:model", func(c *gin.Context) {
 		name := c.Param("model")
 		r.models[name].PostModelFunc(r, c)
 	})
-	r.Engine.DELETE(r.BathPath + "/:model/:id", func(c *gin.Context) {
+	r.Engine.DELETE(r.BasePath + "/:model/:id", func(c *gin.Context) {
 		name := c.Param("model")
 		r.models[name].DeleteModelIDFunc(r, c)
 	})
-	r.Engine.PUT(r.BathPath + "/:model/:id", func(c *gin.Context) {
+	r.Engine.PUT(r.BasePath + "/:model/:id", func(c *gin.Context) {
 		name := c.Param("model")
 		r.models[name].PutModelIDFunc(r, c)
 	})
