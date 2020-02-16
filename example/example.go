@@ -25,7 +25,7 @@ func main() {
 	os.Remove("test.db")
 	db, _ := gorm.Open("sqlite3", "test.db")
 	defer db.Close()
-	r := rest.New(e, db)
+	r := rest.New(e, db, "/api")
 	r.AddModel(Product{})
 	r.AddModel(Customer{})
 	r.ForModel(Customer{}).GetModelFunc = func(r *rest.Rest, c *gin.Context) {

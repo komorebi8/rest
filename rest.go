@@ -15,11 +15,11 @@ type Rest struct {
 	BasePath string
 }
 
-func New(e *gin.Engine, db *gorm.DB) *Rest {
+func New(e *gin.Engine, db *gorm.DB, basePath string) *Rest {
 	return &Rest{
 		Engine:   e,
 		DB:       db,
-		BasePath: "/api",
+		BasePath: basePath,
 		models:   make(map[string]*Model),  // name of model and model
 	}
 }
