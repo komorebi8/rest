@@ -7,37 +7,43 @@ For example, writing this code, and you can GET and POST on "localhost:8080/api/
 also GET, POST, DELETE and PUT on "localhost:8080/api/product/:id".
 
     package main
+    
     import (
-	    "github.com/gin-gonic/gin"
-	    "github.com/jinzhu/gorm"
-	    _ "github.com/jinzhu/gorm/dialects/sqlite"
-	    "github.com/kunnpuu/rest"
+    	"github.com/gin-gonic/gin"
+    	"github.com/jinzhu/gorm"
+    	_ "github.com/jinzhu/gorm/dialects/sqlite"
+    	"github.com/kunnpuu/rest"
+    	"os"
     )
+    
     type Product struct {
-	    gorm.Model
-	    Code string
-	    Price uint
+    	gorm.Model
+    	Code string
+    	Price uint
     }
+    
     type Customer struct {
-	    gorm.Model
-	    Name string
-	    Age uint
+    	gorm.Model
+    	Name string
+    	Age uint
     }
+    
     func main() {
-	    e := gin.Default()
-	    db, _ := gorm.Open("sqlite3", "test.db")
-	    defer db.Close()
-	    r := rest.New(e, db)
-	    r.AddModel(Product{})
-	    r.AddModel(Customer{})
-	    // Customization
-	    r.ForModel(Customer{}).GetModel = func(r *Rest, c *gin.Context) {
-        		c.JSON(200, gin.H{
-        			"data": "customer",
-        		})
-        	}
-	    r.Run()
+    	e := gin.Default()
+    	os.Remove("test.db")
+    	db, _ := gorm.Open("sqlite3", "test.db")
+    	defer db.Close()
+    	r := rest.New(e, db)
+    	r.AddModel(Product{})
+    	r.AddModel(Customer{})
+    	r.ForModel(Customer{}).GetModelFunc = func(r *rest.Rest, c *gin.Context) {
+    		c.JSON(200, gin.H{
+    			"data": "customer",
+    		})
+    	}
+    	r.Run()
     }
+
     
     /*
     GET: localhost:8080/
@@ -45,10 +51,10 @@ also GET, POST, DELETE and PUT on "localhost:8080/api/product/:id".
     {
         "_links": {
             "customer": {
-                "href": "http://193.168.1.114:8080/api/customer"
+                "href": "localhost:8080/api/customer"
             },
             "product": {
-                "href": "http://193.168.1.114:8080/api/product"
+                "href": "localhost:8080/api/product"
             }
         }
     }
@@ -86,7 +92,7 @@ also GET, POST, DELETE and PUT on "localhost:8080/api/product/:id".
         },
         "_links": {
             "self": {
-                "href": "http://193.168.1.114:8080/api/product"
+                "href": "localhost:8080/api/product"
             }
         }
     }
